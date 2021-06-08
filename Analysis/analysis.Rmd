@@ -1,0 +1,61 @@
+---
+title: "Penguins Random Forest Analysis"
+author: "Alex Knowlton"
+date: "6/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## my_rf_cv
+`my_rf_cv` is a function that takes in a parameter of the number of folds to
+use in cross-validation. It then attempts to predict the body mass of penguins
+from the bill length, bill depth, and flipper length.
+
+We can examine the effect of the cv parameter thus:
+```{r}
+library(ggplot2)
+source("../Code/my_rf_cv.R")
+k <- c(2, 5, 10)
+result <- matrix(nrow = 90, ncol = 2)
+colnames(result) <- c("n_folds", "cv_error")
+for (i in 1:3) {
+  for (j in 1:30) {
+    result[(30) * (i - 1) + j, 1] <- k[i]
+    result[(30) * (i - 1) + j, 2] <- my_rf_cv(k[i])
+  }
+}
+
+result <- as.data.frame(result)
+write.csv(result, "../Output/Results/cv_errors.csv")
+fig <- ggplot(result, aes(x=n_folds, y=cv_error, 
+                   group = n_folds)) + geom_boxplot() + labs(title = 
+                          "Random Forest with 5-fold Cross validation",
+                          x = "Number of folds", y = "Mean Squared CV Error")
+ggsave("../Output/Figures/rf_boxplot.png")
+fig
+```
+
+``` {r}
+result_stats <- matrix(nrow = 3, ncol = 2)
+colnames(result_stats) <- c("mean", "standard deviation")
+rownames(result_stats) <- c("k = 2", "k = 5", "k = 10")
+for (i in 1:3) {
+  results_of_specific_k <- result[result$n_folds == k[i], 2]
+  result_stats[i, 1] <- mean(results_of_specific_k)
+  result_stats[i, 2] <- sd(results_of_specific_k)
+}
+result_stats <- (as.table(result_stats))
+saveRDS(result_stats, "../Output/Results/rf_summary_stats.rds")
+library(kableExtra)
+kable_styling(kable(result_stats))
+```
+
+It's clear that, as the number of folds increases, both the mean squared error
+and the standard deviation of the squared error decrease. This makes sense,
+since as there are more folds, the model has more training data to work with,
+and can get a better grasp on the data itself. Therefore, its predictions
+would be better. There are also fewer predictions, so the mean squared error
+should be smaller with a smaller number of people as well.
